@@ -1,0 +1,89 @@
+spring:
+  aop:
+    proxy-target-class: true
+  
+  sleuth:
+    sampler:
+# Generally the tracing data volume can be quite high; so we can tell Spring sleuth to
+# sample only some percentage of requests by specifying a double value between 0.0 and 1.0.
+
+# For testing purposes, we are sampling all requests (1.0) but generally in production you should
+# sample only 10-20% of the data or write custome strategy to sample say only in case of 500 errors.
+      percentage: 1.0
+
+# When enabled=false, traces log to the console. Comment to send to zipkin
+sample:
+  zipkin:
+    enabled: true
+
+# The OAuth2 server definition that would be used to send the authorization requests to
+
+ui:
+   hostname : localhost
+   port: 8080
+   contextPath: web-ui
+
+
+zuul:
+  ignoredServices: '*'
+  routes:
+    user-service:
+      path: /user-service/**
+      stripPrefix: false
+      serviceId: user-webservice
+      sensitiveHeaders:
+    ecm-device:
+      path: /ecm-device/**
+      stripPrefix: false
+      serviceId: ecm-device
+      sensitiveHeaders:
+    task-service:
+      path: /task-service/**
+      stripPrefix: false
+      serviceId: task-webservice
+      sensitiveHeaders:
+    
+    ui:
+       path: /**
+       serviceId: web-ui
+       sensitiveHeaders: 
+
+
+
+# Since our gateway is using Eureka (@EnableEurekaClient), the Gateway using Netfix Ribbon to make
+# the actual call. The ribbon call is wrapped within Hystrix so that we can handle any errors.
+# Hystrix has low delay tolerance threshold and hence we bump it to 5 seconds.
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          strategy: SEMAPHORE
+          semaphore:
+            timeoutInMilliseconds: 5000
+
+# Define the Eureka server that handles service registration
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8090/eureka/
+
+---
+# Auth-server instance when used on Docker
+
+eureka:
+# Register our microservices to Eureka using hostnames in a Docker environment will not work, they will all get
+# one and the same hostname. Instead we configure them to use its IP address during registration with Eureka.
+  instance:
+    preferIpAddress: true
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8090/eureka/
+
+# The OAuth2 server definition that would be used to send the authorization requests to
+
+
+# Define the port where the API gateway server would be running. This could always be port 8080
+# since each docker container has it's own IP
+server:
+  port: 8079
